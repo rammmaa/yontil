@@ -1,3 +1,4 @@
+import browser from 'webextension-polyfill'
 import { Course } from '../core/tasks/tasks-repository'
 
 export type TabMessage =
@@ -45,7 +46,7 @@ interface CancelRefreshingSessionMessage {
 
 export async function sendMessageToTab(tabId: number, message: TabMessage) {
   try {
-    await chrome.tabs.sendMessage<TabMessage>(tabId, message)
+    await browser.tabs.sendMessage(tabId, message)
   } catch (e) {
     console.log(
       `[${new Date().toISOString()}] Failed to send message to tab ${tabId}:`,
@@ -60,5 +61,5 @@ export async function sendMessageToTabs(tabIds: number[], message: TabMessage) {
 }
 
 export async function sendMessageToBackground(message: TabMessage) {
-  await chrome.runtime.sendMessage<TabMessage>(message)
+  await browser.runtime.sendMessage(message)
 }

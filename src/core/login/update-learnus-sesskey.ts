@@ -1,8 +1,9 @@
+import browser from 'webextension-polyfill'
 import { sendMessageToTabs } from '../../utils/tab-message'
 import { LEARNUS_ORIGIN, LEARNUS_URL_PATTERN } from '../constants'
 
 export default async function updateLearnUsSesskey() {
-  const tabs = await chrome.tabs.query({ url: [LEARNUS_URL_PATTERN] })
+  const tabs = await browser.tabs.query({ url: [LEARNUS_URL_PATTERN] })
   const tabIds = tabs.map((tab) => tab.id).filter((id) => id !== undefined)
 
   if (tabIds.length === 0) return
@@ -15,7 +16,7 @@ export default async function updateLearnUsSesskey() {
   const sesskey = text.match(/sesskey":"([^"]+)/)?.[1]
   if (!sesskey) return
 
-  await sendMessageToTabs(tabIds, {
+  await sendMessageToTabs(tabIds as number[], {
     type: 'update-learnus-sesskey',
     sesskey,
   })

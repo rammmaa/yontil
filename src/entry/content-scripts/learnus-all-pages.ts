@@ -1,3 +1,4 @@
+import browser from 'webextension-polyfill'
 import '../../main.css'
 
 import { setupRefreshingOverlay } from '../../core/login/setup-refreshing-overlay'
@@ -12,13 +13,14 @@ const { handleShowRefreshingOverlayChange } = setupRefreshingOverlay({
   },
 })
 
-chrome.runtime.onMessage.addListener((message: TabMessage) => {
-  switch (message.type) {
+browser.runtime.onMessage.addListener((message: unknown) => {
+  const msg = message as TabMessage
+  switch (msg.type) {
     case 'refreshing-overlay':
-      handleShowRefreshingOverlayChange(message.show)
+      handleShowRefreshingOverlayChange(msg.show)
       break
     case 'update-learnus-sesskey':
-      updateSesskey(message.sesskey)
+      updateSesskey(msg.sesskey)
       break
   }
 })
@@ -37,7 +39,7 @@ function updateSesskey(sesskey: string) {
   scriptElement.setAttribute('type', 'text/javascript')
   scriptElement.setAttribute(
     'src',
-    chrome.runtime.getURL('/update-learnus-sesskey-script.js')
+    browser.runtime.getURL('/update-learnus-sesskey-script.js')
   )
 
   document.body.appendChild(scriptElement)

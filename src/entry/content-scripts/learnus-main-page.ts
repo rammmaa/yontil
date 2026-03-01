@@ -1,3 +1,4 @@
+import browser from 'webextension-polyfill'
 import LearnusMainPageActionsElement from '../../core/learnus-main-page-actions-element'
 import fetchTasks, { TasksCourse } from '../../core/tasks/fetch-tasks'
 import TasksListElement from '../../core/tasks/tasks-list-element'
@@ -56,14 +57,15 @@ function disposeTasks() {
   TasksListElement.dispose()
 }
 
-chrome.runtime.onMessage.addListener((message: TabMessage) => {
-  switch (message.type) {
+browser.runtime.onMessage.addListener((message: unknown) => {
+  const msg = message as TabMessage
+  switch (msg.type) {
     case 'tasks-enabled-updated':
       LearnusMainPageActionsElement.updateTasksSwitch({
-        isTasksEnabled: message.isTasksEnabled,
+        isTasksEnabled: msg.isTasksEnabled,
       })
 
-      if (message.isTasksEnabled) {
+      if (msg.isTasksEnabled) {
         initializeTasks()
       } else {
         disposeTasks()
@@ -71,17 +73,17 @@ chrome.runtime.onMessage.addListener((message: TabMessage) => {
       break
 
     case 'tasks-refreshing-updated':
-      TasksRefreshElement.update({ isRefreshing: message.isRefreshing })
+      TasksRefreshElement.update({ isRefreshing: msg.isRefreshing })
       break
 
     case 'courses-data-updated':
-      if (message.courses) {
-        TasksListElement.showTasks(message.courses)
+      if (msg.courses) {
+        TasksListElement.showTasks(msg.courses)
       }
-      if (message.lastUpdated) {
+      if (msg.lastUpdated) {
         TasksRefreshElement.update({
           isRefreshing: false,
-          lastUpdated: message.lastUpdated,
+          lastUpdated: msg.lastUpdated,
         })
       }
       break

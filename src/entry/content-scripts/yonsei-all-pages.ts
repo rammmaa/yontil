@@ -1,3 +1,4 @@
+import browser from 'webextension-polyfill'
 import '../../main.css'
 
 import { setupRefreshingOverlay } from '../../core/login/setup-refreshing-overlay'
@@ -12,10 +13,11 @@ const { handleShowRefreshingOverlayChange } = setupRefreshingOverlay({
   },
 })
 
-chrome.runtime.onMessage.addListener((message: TabMessage) => {
-  switch (message.type) {
+browser.runtime.onMessage.addListener((message: unknown) => {
+  const msg = message as TabMessage
+  switch (msg.type) {
     case 'refreshing-overlay':
-      handleShowRefreshingOverlayChange(message.show)
+      handleShowRefreshingOverlayChange(msg.show)
       break
   }
 })

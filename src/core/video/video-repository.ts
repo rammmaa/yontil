@@ -1,17 +1,14 @@
+import browser from 'webextension-polyfill'
+
 const VIDEO_PLAYBACK_RATE_KEY = 'videoPlaybackRate'
 
-interface VideoPlaybackRate {
-  [VIDEO_PLAYBACK_RATE_KEY]: number | undefined
-}
-
 export async function getVideoPlaybackRate(): Promise<number | undefined> {
-  const { videoPlaybackRate } =
-    await chrome.storage.local.get<VideoPlaybackRate>(VIDEO_PLAYBACK_RATE_KEY)
-  return videoPlaybackRate
+  const result = await browser.storage.local.get(VIDEO_PLAYBACK_RATE_KEY)
+  return result[VIDEO_PLAYBACK_RATE_KEY] as number | undefined
 }
 
 export async function setVideoPlaybackRate(rate: number): Promise<void> {
-  await chrome.storage.local.set<VideoPlaybackRate>({
+  await browser.storage.local.set({
     [VIDEO_PLAYBACK_RATE_KEY]: rate,
   })
 }

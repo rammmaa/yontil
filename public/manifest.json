@@ -11,8 +11,15 @@
     "128": "icon.png"
   },
 
+  "browser_specific_settings": {
+    "gecko": {
+      "id": "yontil@yonsei.utils",
+      "strict_min_version": "109.0"
+    }
+  },
+
   "background": {
-    "service_worker": "js/background.js"
+    "scripts": ["js/background.js"]
   },
 
   "content_scripts": [
@@ -56,7 +63,7 @@
     }
   ],
 
-  "permissions": ["storage", "alarms", "declarativeNetRequestWithHostAccess"],
+  "permissions": ["storage", "alarms", "webRequest", "webRequestBlocking"],
   "host_permissions": [
     "https://ys.learnus.org/*",
     "https://portal.yonsei.ac.kr/*",
@@ -68,15 +75,5 @@
       "resources": ["update-learnus-sesskey-script.js"],
       "matches": ["https://ys.learnus.org/*"]
     }
-  ],
-
-  "declarative_net_request": {
-    "rule_resources": [
-      {
-        "id": "ruleset_1",
-        "enabled": true,
-        "path": "declarative_net_request_rules_1.json"
-      }
-    ]
-  }
+  ]
 }

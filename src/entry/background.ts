@@ -1,3 +1,4 @@
+import browser from 'webextension-polyfill'
 import {
   getIsRefreshSessionAlarmExists,
   recreateRefreshSessionAlarm,
@@ -20,6 +21,7 @@ import {
 } from '../core/login/refresh-session'
 import { startListeningNetworkStatus } from '../core/network-status'
 import {
+  Course,
   COURSES_DATA_KEY,
   COURSES_DATA_LAST_UPDATED_KEY,
   IS_TASKS_ENABLED_KEY,
@@ -28,8 +30,8 @@ import {
 import { migrateLocalStorageKey } from '../utils/migrate-storage-key'
 import { sendMessageToTabs, TabMessage } from '../utils/tab-message'
 
-chrome.runtime.onInstalled.addListener(async (details) => {
-  if (details.reason === chrome.runtime.OnInstalledReason.UPDATE) {
+browser.runtime.onInstalled.addListener(async (details) => {
+  if (details.reason === 'update') {
     await migrateLocalStorageKey(
       'lastRefreshedTime',
       'lastSessionRefreshedTime'
@@ -43,7 +45,7 @@ chrome.runtime.onInstalled.addListener(async (details) => {
   }
 })
 
-chrome.alarms.onAlarm.addListener(async (alarm) => {
+browser.alarms.onAlarm.addListener(async (alarm) => {
   switch (alarm.name) {
     case REFRESH_SESSION_ALARM_NAME:
       await refreshSession()
@@ -51,74 +53,72 @@ chrome.alarms.onAlarm.addListener(async (alarm) => {
   }
 })
 
-chrome.windows.onCreated.addListener(
-  async () => {
-    const allWindows = await chrome.windows.getAll({ windowTypes: ['normal'] })
-    const isFirstWindow =
-      allWindows.filter((window) => !window.incognito).length <= 1
+browser.windows.onCreated.addListener(async () => {
+  const allWindows = await browser.windows.getAll({ windowTypes: ['normal'] })
+  const isFirstWindow =
+    allWindows.filter((window) => !window.incognito).length <= 1
 
-    if (isFirstWindow) {
-      await removeLastSessionRefreshedTime()
-      await refreshSession()
-    }
+  if (isFirstWindow) {
+    await removeLastSessionRefreshedTime()
+    await refreshSession()
+  }
 
-    startListeningNetworkStatus()
-  },
-  { windowTypes: ['normal'] }
-)
+  startListeningNetworkStatus()
+})
 
-chrome.storage.onChanged.addListener(async (changes) => {
+browser.storage.onChanged.addListener(async (changes) => {
   if (
     LAST_SESSION_REFRESHED_TIME_KEY in changes ||
     IS_SESSION_REFRESHING_KEY in changes
   ) {
-    const tabs = await chrome.tabs.query({
+    const tabs = await browser.tabs.query({
       url: [LEARNUS_URL_PATTERN, PORTAL_URL_PATTERN, INFRA_URL_PATTERN],
     })
 
     const showRefreshingOverlay = await getShowRefreshingOverlay()
 
     const tabIds = tabs.map((tab) => tab.id).filter((id) => id !== undefined)
-    await sendMessageToTabs(tabIds, {
+    await sendMessageToTabs(tabIds as number[], {
       type: 'refreshing-overlay',
       show: showRefreshingOverlay,
     })
   }
 
   if (IS_TASKS_ENABLED_KEY in changes) {
-    const tabs = await chrome.tabs.query({ url: LEARNUS_URL_PATTERN })
+    const tabs = await browser.tabs.query({ url: LEARNUS_URL_PATTERN })
     const tabIds = tabs.map((tab) => tab.id).filter((id) => id !== undefined)
 
-    await sendMessageToTabs(tabIds, {
+    await sendMessageToTabs(tabIds as number[], {
       type: 'tasks-enabled-updated',
-      isTasksEnabled: changes[IS_TASKS_ENABLED_KEY]?.newValue,
+      isTasksEnabled: changes[IS_TASKS_ENABLED_KEY]?.newValue as boolean,
     })
   }
 
   if (IS_TASKS_REFRESHING_KEY in changes) {
-    const tabs = await chrome.tabs.query({ url: LEARNUS_URL_PATTERN })
+    const tabs = await browser.tabs.query({ url: LEARNUS_URL_PATTERN })
     const tabIds = tabs.map((tab) => tab.id).filter((id) => id !== undefined)
 
-    await sendMessageToTabs(tabIds, {
+    await sendMessageToTabs(tabIds as number[], {
       type: 'tasks-refreshing-updated',
-      isRefreshing: changes[IS_TASKS_REFRESHING_KEY]?.newValue,
+      isRefreshing: changes[IS_TASKS_REFRESHING_KEY]?.newValue as boolean,
     })
   }
 
   if (COURSES_DATA_KEY in changes || COURSES_DATA_LAST_UPDATED_KEY in changes) {
-    const tabs = await chrome.tabs.query({ url: LEARNUS_URL_PATTERN })
+    const tabs = await browser.tabs.query({ url: LEARNUS_URL_PATTERN })
     const tabIds = tabs.map((tab) => tab.id).filter((id) => id !== undefined)
 
-    await sendMessageToTabs(tabIds, {
+    await sendMessageToTabs(tabIds as number[], {
       type: 'courses-data-updated',
-      courses: changes[COURSES_DATA_KEY]?.newValue,
-      lastUpdated: changes[COURSES_DATA_LAST_UPDATED_KEY]?.newValue,
+      courses: changes[COURSES_DATA_KEY]?.newValue as Course[] | undefined,
+      lastUpdated: changes[COURSES_DATA_LAST_UPDATED_KEY]?.newValue as number | undefined,
     })
   }
 })
 
-chrome.runtime.onMessage.addListener(async (message: TabMessage) => {
-  switch (message.type) {
+browser.runtime.onMessage.addListener(async (message: unknown) => {
+  const msg = message as TabMessage
+  switch (msg.type) {
     case 'recreate-refresh-session-alarm':
       await recreateRefreshSessionAlarm()
       break
@@ -127,3 +127,24 @@ chrome.runtime.onMessage.addListener(async (message: TabMessage) => {
       break
   }
 })
+
+// webRequest listener to set Referer header (replaces declarativeNetRequest)
+browser.webRequest.onBeforeSendHeaders.addListener(
+  (details) => {
+    const headers = details.requestHeaders || []
+    const refererIndex = headers.findIndex(
+      (h) => h.name.toLowerCase() === 'referer'
+    )
+    if (refererIndex !== -1) {
+      headers[refererIndex].value = 'https://ys.learnus.org'
+    } else {
+      headers.push({ name: 'Referer', value: 'https://ys.learnus.org' })
+    }
+    return { requestHeaders: headers }
+  },
+  {
+    urls: ['*://ys.learnus.org/passni/sso/spLogin2.php*'],
+    types: ['xmlhttprequest'],
+  },
+  ['blocking', 'requestHeaders']
+)

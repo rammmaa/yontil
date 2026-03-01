@@ -1,18 +1,15 @@
+import browser from 'webextension-polyfill'
+
 export const IS_TASKS_ENABLED_KEY = 'isTasksEnabled'
 const IS_TASKS_ENABLED_DEFAULT = true
 
-interface IsTasksEnabled {
-  [IS_TASKS_ENABLED_KEY]: boolean | undefined
-}
-
 export async function getIsTasksEnabled(): Promise<boolean> {
-  const { isTasksEnabled } =
-    await chrome.storage.local.get<IsTasksEnabled>(IS_TASKS_ENABLED_KEY)
-  return isTasksEnabled ?? IS_TASKS_ENABLED_DEFAULT
+  const result = await browser.storage.local.get(IS_TASKS_ENABLED_KEY)
+  return (result[IS_TASKS_ENABLED_KEY] as boolean | undefined) ?? IS_TASKS_ENABLED_DEFAULT
 }
 
 export async function setIsTasksEnabled(enabled: boolean): Promise<void> {
-  await chrome.storage.local.set<IsTasksEnabled>({
+  await browser.storage.local.set({
     [IS_TASKS_ENABLED_KEY]: enabled,
   })
 }
@@ -20,22 +17,17 @@ export async function setIsTasksEnabled(enabled: boolean): Promise<void> {
 export const IS_TASKS_REFRESHING_KEY = 'isTasksRefreshing'
 const IS_TASKS_REFRESHING_DEFAULT = false
 
-interface IsTasksRefreshing {
-  [IS_TASKS_REFRESHING_KEY]: boolean | undefined
-}
-
 export async function setIsTasksRefreshing(
   isRefreshing: boolean
 ): Promise<void> {
-  await chrome.storage.local.set<IsTasksRefreshing>({
+  await browser.storage.local.set({
     [IS_TASKS_REFRESHING_KEY]: isRefreshing,
   })
 }
 
 export async function getIsTasksRefreshing(): Promise<boolean> {
-  const { isTasksRefreshing } =
-    await chrome.storage.local.get<IsTasksRefreshing>(IS_TASKS_REFRESHING_KEY)
-  return isTasksRefreshing ?? IS_TASKS_REFRESHING_DEFAULT
+  const result = await browser.storage.local.get(IS_TASKS_REFRESHING_KEY)
+  return (result[IS_TASKS_REFRESHING_KEY] as boolean | undefined) ?? IS_TASKS_REFRESHING_DEFAULT
 }
 
 export const COURSES_DATA_KEY = 'coursesData'
@@ -52,17 +44,17 @@ export interface CoursesData {
 }
 
 export async function setCoursesData(courses: Course[]): Promise<void> {
-  await chrome.storage.local.set<CoursesData>({
+  await browser.storage.local.set({
     [COURSES_DATA_KEY]: courses,
     [COURSES_DATA_LAST_UPDATED_KEY]: Date.now(),
   })
 }
 
 export async function getCoursesData(): Promise<CoursesData> {
-  return await chrome.storage.local.get<CoursesData>([
+  return (await browser.storage.local.get([
     COURSES_DATA_KEY,
     COURSES_DATA_LAST_UPDATED_KEY,
-  ])
+  ])) as unknown as CoursesData
 }
 
 interface TasksInitialState {
@@ -72,14 +64,16 @@ interface TasksInitialState {
 }
 
 export async function getTasksInitialState(): Promise<TasksInitialState> {
-  const state = await chrome.storage.local.get<IsTasksRefreshing & CoursesData>(
-    [IS_TASKS_REFRESHING_KEY, COURSES_DATA_KEY, COURSES_DATA_LAST_UPDATED_KEY]
-  )
+  const state = await browser.storage.local.get([
+    IS_TASKS_REFRESHING_KEY,
+    COURSES_DATA_KEY,
+    COURSES_DATA_LAST_UPDATED_KEY,
+  ])
 
   return {
     isTasksRefreshing:
-      state[IS_TASKS_REFRESHING_KEY] ?? IS_TASKS_REFRESHING_DEFAULT,
-    courses: state[COURSES_DATA_KEY],
-    coursesLastUpdated: state[COURSES_DATA_LAST_UPDATED_KEY],
+      (state[IS_TASKS_REFRESHING_KEY] as boolean | undefined) ?? IS_TASKS_REFRESHING_DEFAULT,
+    courses: state[COURSES_DATA_KEY] as Course[] | undefined,
+    coursesLastUpdated: state[COURSES_DATA_LAST_UPDATED_KEY] as number | undefined,
   }
 }

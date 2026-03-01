@@ -1,12 +1,15 @@
+import browser from 'webextension-polyfill'
+import type { Tabs } from 'webextension-polyfill'
+
 export async function waitUntilTabsLoaded(
-  query?: chrome.tabs.QueryInfo
+  query?: Tabs.QueryQueryInfoType
 ): Promise<void> {
   const startTime = Date.now()
   const TIMEOUT_MS = 10000
   const INTERVAL_MS = 100
 
   while (true) {
-    const tabs = await chrome.tabs.query({ ...query, status: 'loading' })
+    const tabs = await browser.tabs.query({ ...query, status: 'loading' })
     if (tabs.length === 0) {
       break
     }
